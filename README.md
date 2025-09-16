@@ -1,4 +1,4 @@
-# .NET Application Instrumentation Helper
+# .NET POCO Rules Finder
 
 A Windows application that helps in **detecting classes, methods, and call stacks** of running .NET applications.  
 This tool is especially useful when configuring **POCO (Plain Old CLR Object) transactions** in AppDynamics for Windows services or standalone applications that cannot be auto-instrumented.
