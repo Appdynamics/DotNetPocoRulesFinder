@@ -1,0 +1,117 @@
+﻿@page "/config"
+@using EasyInstrumentor.Models.Config
+@using EasyInstrumentor.Services.Config
+@using MudBlazor
+@using System.ComponentModel.DataAnnotations
+@inject ConfigService configService
+@inject NavigationManager Navigation
+@inject Microsoft.AspNetCore.Components.NavigationManager NavManager
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h3" Inline="true">Configure Application</MudText>
+<EditForm Model="@formModel" OnValidSubmit="OnValidSubmit">
+    <DataAnnotationsValidator />
+    <MudGrid Style="padding:16px; margin:16px;">
+        <MudItem xs=10 >
+            <MudCard>
+                <MudCardContent>
+                    <MudTextField Label="Controller Host" @bind-Value="@formModel.ControllerHost" Disabled="true" />
+                    <MudTextField Label="Controller Port" @bind-Value="@formModel.ControllerPort" Disabled="true" />
+                    <MudTextField Label="Default Controller Application" @bind-Value="@formModel.DefaultApplicationName" Disabled="true" />
+                    <MudTextField Label="Executable" @bind-Value="@formModel.StandaloneExecutable" For="@(() => formModel.StandaloneExecutable)" />
+                    <MudTextField Label="Command Line" @bind-Value="@formModel.StandaloneCommandline" />
+
+                    @if (formModel.HasMultiControllerApplication)
+                    {
+                        <MudTextField Label="Application Name" @bind-Value="@formModel.StandaloneApplicationName" />
+                    }
+
+                    <MudTextField Label="Tier Name" @bind-Value="@formModel.StandaloneTierName" For="@(() => formModel.StandaloneTierName)" />
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton ButtonType="ButtonType.Submit" Disabled="isSubmitted" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto mr-4">Submit</MudButton>
+                    <MudButton OnClick="GoBack" Variant="Variant.Filled" Color="Color.Secondary" >Back</MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</EditForm>
+
+@code {
+
+    public string? Executable { get; set; }
+    public string? CommandLine { get; set; }
+    private bool isSubmitted = false;
+
+    private ConfigModel configDetails;
+    private ConfigFormModel formModel;
+    public Standaloneapplication standaloneapplication = new Standaloneapplication();
+
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int ProcessId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        configDetails = await configService.GetConfigDetails(false);
+
+        var uri = new Uri(Navigation.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        Executable = query["Executable"] ?? "";
+        CommandLine = query["CommandLine"] ?? "";
+
+        formModel = new ConfigFormModel()
+            {
+                ControllerHost = configDetails.controller.host,
+                ControllerPort = configDetails.controller.port,
+                DefaultApplicationName = string.IsNullOrEmpty(configDetails.controller.application?.name) ? configDetails.controller.applications.Where(x => x.isDefault == true).FirstOrDefault().name : configDetails.controller.application.name,
+                StandaloneCommandline = CommandLine,
+                StandaloneExecutable = Executable,
+                HasMultiControllerApplication = configDetails.controller.applications.Count > 0
+            };
+    }
+
+    private async Task OnValidSubmit(EditContext context)
+    {
+        
+        Standaloneapplication objApp = new Standaloneapplication()
+            {
+                tier = new Tier()
+                {
+                    name = formModel.StandaloneTierName
+                },
+                commandLine = formModel.StandaloneCommandline,
+                controllerApplication = formModel.StandaloneApplicationName,
+                executable = formModel.StandaloneExecutable
+            };
+
+
+        var data = ConfigService.ToXElement(objApp);
+        string message;
+        bool isSuccess = ConfigService.UpdateStandAloneApplicationToConfig(data, out message);
+
+        if(isSuccess)
+        {
+            isSubmitted = true;
+            // Show success snackbar
+            Snackbar.Add(message, Severity.Success);
+
+        }
+        else
+        {
+            isSubmitted = false;
+            // Show success snackbar
+            Snackbar.Add(message, Severity.Warning);
+        }
+
+
+    }
+
+    private void GoBack()
+    {
+        NavManager.NavigateTo("/capture?FromConfigPage=true" + (isSubmitted?"&ProcessId="+ProcessId:"")); // Change to actual previous page
+    }
+
+
+}

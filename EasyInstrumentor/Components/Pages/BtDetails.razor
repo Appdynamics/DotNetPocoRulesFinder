@@ -1,0 +1,168 @@
+﻿@page "/btdetails"
+@using EasyInstrumentor.Models
+@using EasyInstrumentor.Models.Capture
+@using EasyInstrumentor.Services.Capture
+@using MudBlazor
+@inject CaptureService captureService
+@inject NavigationManager Navigation
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+
+<MudText Typo="Typo.h3" Class="mt-1">POCO Details</MudText>
+
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="mt-0">
+
+    <MudPaper Class="pa-4 mb-4">
+        <MudForm>
+            <MudGrid Class="mt-4">
+                <MudItem xs="12">
+                    <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="pa-1 ml-0 mr-0">
+                        <MudText Typo="Typo.h6" Class="mt-4">Details of Process : @SelectedProcessName</MudText>
+
+                        <MudGrid>
+                            <!-- Table Section -->
+                            <MudItem xs="7" md="7" Class="overflow-auto" Style="height: 400px;">
+                                <MudTable T="BTDetails" Items="SelectedProcessModules" Hover="true" Dense="true" RowClassFunc="GetRowClass" RowCl OnRowClick="OnRowClick" @ref="mudTable">
+                                    <HeaderContent>
+                                        @* <MudTh>Process Name</MudTh> *@
+                                        <MudTh>Class Name</MudTh>
+                                        <MudTh>Method Name</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate>
+                                        @* <MudTd DataLabel="Process Name">@context.ProcessName</MudTd> *@
+                                        <MudTd DataLabel="Class Name">
+                                            <div class="d-flex justify-space-between align-center w-100">
+                                                <span>@context.ClassName</span>
+                                                <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" OnClick="@(() => CopyToClipboard(context.ClassName.ToString()))" Color="Color.Default" />
+                                            </div>
+                                        </MudTd>
+                                        <MudTd DataLabel="Method Name">
+                                            <div class="d-flex justify-space-between align-center w-100">
+                                                @* <MudBadge Origin="Origin.TopRight" Content="@context.ExecutionCount" Color="Color.Primary"> *@
+                                                    <MudText>@context.MethodName</MudText>
+                                                @* </MudBadge> *@
+                                                <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" OnClick="@(() => CopyToClipboard(context.MethodName.ToString()))" Color="Color.Default" />
+                                            </div>
+                                            
+                                        </MudTd>
+                                    </RowTemplate>
+                                    <NoRecordsContent>
+                                        <MudText>No data captured..</MudText>
+                                    </NoRecordsContent>
+                                </MudTable>
+                            </MudItem>
+
+                            @if (_selectedRow != null)
+                            {
+                                    <MudItem xs="5" md="5" Class="overflow-y-auto" Style="height: 400px;">
+                                        <MudCard Class="pa-4 mt-4" Elevation="4" Style="height: 100%;">
+                                            <MudCardContent Class="overflow-y-auto" Style="white-space: normal;">
+                                                <MudText>Call Stack</MudText>
+                                                <MudText Typo="Typo.body2">@callStackBody</MudText>
+                                            </MudCardContent>
+                                        </MudCard>
+                                    </MudItem>
+                            }
+
+                        </MudGrid>
+                    </MudContainer>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </MudPaper>
+</MudContainer>
+
+<MudContainer Class="ml-0">
+    <MudButton Color="Color.Tertiary" Variant="Variant.Filled" OnClick="NavigateToHome">
+        Home
+    </MudButton>
+</MudContainer>
+
+
+
+@code {
+
+    private string SelectedProcessName { get; set; }
+    private string callStackBody = "Select any row to display call stack..";
+    private BTDetails? _selectedRow;
+    private DotnetProcess SelectedProcess;
+    private int selectedRowNumber = -1;
+    private MudTable<BTDetails> mudTable;
+
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int ProcessId { get; set; }
+
+
+    private HashSet<DotnetProcess> ProcessedData { get; set; } = new();
+    private List<BTDetails> SelectedProcessModules { get; set; } = new();
+
+
+    private async void LoadModules(int processId)
+    {
+        SelectedProcessModules.Clear();
+        try
+        {
+            SelectedProcessModules.AddRange(captureService.FillBtData(processId).OrderByDescending(p => p.CallStack));
+
+            var match = await captureService.GetNewProcessData();
+            SelectedProcessName = match.ProcessName;
+        }
+        catch
+        {
+            // Handle processes that can't be accessed
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        LoadModules(ProcessId);
+    }
+
+    private void NavigateToHome()
+    {
+        captureService.StopCapture(true);
+        Navigation.NavigateTo($"/?fromPage=btdetail");
+    }
+
+
+    #region Events
+
+    // Method to conditionally apply row class based on CallStack
+    private string GetRowClass(BTDetails item, int rowNumber)
+    {
+        string baseClass = "mud-table-row"; // Assuming this is the existing class for rows
+        string additionalClass = !string.IsNullOrWhiteSpace(item.CallStack) ? "mud-table-row-green" : string.Empty;
+        string highlightingClass = string.Empty;
+
+        if (mudTable.SelectedItem != null && mudTable.SelectedItem.Equals(item))
+        {
+            selectedRowNumber = rowNumber;
+            highlightingClass = "selected";
+        }
+
+        // Append the additional class to the existing base class
+        return $"{baseClass} {additionalClass} {highlightingClass}".Trim();
+    }
+
+    private void OnRowClick(TableRowClickEventArgs<BTDetails> tableRowClickEventArgs)
+    {
+        if (!string.IsNullOrWhiteSpace(tableRowClickEventArgs.Item.CallStack))
+        {
+            _selectedRow = tableRowClickEventArgs.Item;
+            callStackBody = string.IsNullOrWhiteSpace(@_selectedRow.CallStack) ? "No Call Stack Available.." : _selectedRow.CallStack;
+        }
+        else
+        {
+            callStackBody = "No Call Stack Available..";
+        }
+    }
+
+    async Task CopyToClipboard(string text)
+    {
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", text);
+    }
+
+    #endregion Events
+}

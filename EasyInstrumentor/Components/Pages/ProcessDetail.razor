@@ -1,0 +1,127 @@
+﻿@page "/process-detail/{OldPid:int}"
+@using EasyInstrumentor.Models
+@using EasyInstrumentor.Services.Capture
+@inject ProcessService ProcessService
+@inject CaptureService captureService
+@inject NavigationManager Navigation
+
+<h3>Process Details</h3>
+@if (_process == null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudPaper Class="p-4 mt-4" Elevation="3" >
+        <MudText Typo="Typo.h6">Current Process Information</MudText>
+        <MudText>ID: @_process.ProcessId</MudText>
+        <MudText>Name: @_process.ProcessName</MudText>
+        <MudText>CommandLine: @_process.CommandLine</MudText>
+        <MudDivider Class="my-2" />
+        <MudText Color="Color.Warning">We will start capturing class, method, and call stack events once the process restarts.</MudText>
+        <MudText Color="Color.Dark">Please restart the application and perform the transaction which you want to monitor.</MudText>
+
+        @if (_newProcess != null)
+        {
+            <MudDivider Class="my-2" />
+            <MudText Typo="Typo.h6">New Process Started</MudText>
+            <MudText>New PID: @_newProcess.ProcessId</MudText>
+            <MudText>Name: @_newProcess.ProcessName</MudText>
+
+
+            <div class="d-flex align-items-center" style="margin-top: 60px;">
+                @* <MudProgressCircular Indeterminate="true" Class="my-2 mr-2" />
+                <MudButton Color="Color.Secondary" Variant="Variant.Filled" OnClick="NavigateToBtDetails" Disabled="@IsSubmitting">
+                    Stop & View Captured Data
+                </MudButton> *@
+
+                <MudButton Disabled="@IsSubmitting" OnClick="NavigateToBtDetails" Variant="Variant.Filled" Color="Color.Secondary">
+                    @if (IsSubmitting)
+                    {
+                        <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="my-2 mr-2" />
+                        <MudText Class="ms-2">Processing</MudText>
+                    }
+                    else
+                    {
+                        <MudText>Stop & View Captured Data</MudText>
+                    }
+                </MudButton>
+
+            </div>
+        }
+    </MudPaper>
+
+    <MudContainer Class="mt-4 p-4 ml-0">
+        <MudButton Color="Color.Tertiary" Variant="Variant.Filled" OnClick="NavigateToHome">
+            Back
+        </MudButton>
+    </MudContainer>
+}
+@code {
+    [Parameter]
+    public int OldPid { get; set; }
+
+
+    private DotnetProcess? _process;
+    private DotnetProcess? _newProcess;
+    private Timer? _monitorTimer;
+    private bool _processFound = false;
+    private bool IsSubmitting = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _newProcess = null;
+        _processFound = false;
+        _process = await ProcessService.GetProcessByIdAsync(OldPid);
+        captureService.StartCapture(_process.CommandLine, OldPid);
+        StartMonitoringForNewProcess();
+    }
+
+    private void StartMonitoringForNewProcess()
+    {
+        _monitorTimer = new Timer(async _ =>
+        {
+            if (_process == null || _processFound) return;
+
+            var match = await captureService.GetNewProcessData();
+            if (match != null)
+            {
+                _newProcess = match;
+                _processFound = true;
+                _monitorTimer?.Dispose();
+                _monitorTimer = null;
+                InvokeAsync(StateHasChanged);
+            }
+        }, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(500));
+    }
+
+    private async void NavigateToBtDetails()
+    {
+        IsSubmitting = true;
+        StateHasChanged();
+        if (await captureService.StopCapture(false))
+        {
+            string url = $"/btdetails?ProcessId={_newProcess.ProcessId}";
+            Reset();
+
+            Navigation.NavigateTo(url);
+        }
+    }
+
+
+    private void NavigateToHome()
+    {
+        Reset();
+        captureService.StopCapture(true);
+        Navigation.NavigateTo($"/?fromPage=processdetail");
+    }
+
+    private void Reset()
+    {
+        _processFound = false;
+        _newProcess = null;
+        StateHasChanged();
+    }
+
+
+}

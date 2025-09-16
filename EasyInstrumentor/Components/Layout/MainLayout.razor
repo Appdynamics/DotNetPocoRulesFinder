@@ -1,0 +1,41 @@
+﻿@using MudBlazor
+@inherits LayoutComponentBase
+
+
+@* Required *@
+<MudThemeProvider />
+<MudPopoverProvider />
+
+@* Needed for dialogs *@
+<MudDialogProvider />
+
+@* Needed for snackbars *@
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar>
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+Dotnet POCO Detector
+    </MudAppBar>
+    <MudDrawer @bind-Open="@_drawerOpen" Elevation="25" Anchor="Anchor.Left">
+        <MudDrawerHeader>
+            <MudText Typo="Typo.h6">Dot Net POCO Detector</MudText>
+        </MudDrawerHeader>
+        <MudDrawerContainer>
+            <NavMenu />
+        </MudDrawerContainer>
+    </MudDrawer>
+    <MudMainContent>
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+
+@code {
+    bool _drawerOpen = false;
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+}

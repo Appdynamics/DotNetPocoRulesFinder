@@ -1,0 +1,137 @@
+﻿@page "/"
+@using EasyInstrumentor.Models
+@using EasyInstrumentor.Models.Capture
+@using EasyInstrumentor.Services.Capture
+@using MudBlazor
+@inject CaptureService captureService
+@inject NavigationManager Navigation
+@inject ProcessService processService
+
+
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mx-auto mt-4">
+
+
+    <!-- Full-width toolbar -->
+    <div class="d-flex justify-between align-center px-4 py-2" style="width: 100%;justify-content: space-between;">
+        <MudText Typo="Typo.h6">Total Processes: @(isLoading ? 0 : processes.Count)</MudText>
+
+        <MudButton Color="Color.Primary"
+        StartIcon="@Icons.Material.Filled.Refresh"
+        OnClick="Refresh"
+        Variant="Variant.Filled"
+        Disabled="@isLoading">
+            @if (isLoading)
+            {
+                <span>Loading...</span>
+            }
+            else
+            {
+                <span>Refresh</span>
+            }
+        </MudButton>
+    </div>
+
+
+    @if (!isLoading)
+    {
+
+        <MudTextField @bind-Value="searchString" Placeholder="Search by process name..." DebounceInterval="500" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-3" />
+
+        <MudTable T="DotnetProcess" Items="filteredData" Hover="true" Bordered="true">
+            <HeaderContent>
+                <MudTh>ID</MudTh>
+                <MudTh>Name</MudTh>
+                @* <MudTh>Command Line</MudTh> *@
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.ProcessId</MudTd>
+                <MudTd>@context.ProcessName</MudTd>
+                @* <MudTd>@context.CommandLine</MudTd> *@
+                <MudTd>
+                    <MudButton Variant="Variant.Filled" OnClick="() => Proceed(context)">Proceed</MudButton>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText>
+                    No eligible dotnet process running..
+                </MudText>
+            </NoRecordsContent>
+        </MudTable>
+    }
+</MudContainer>
+
+<!-- Fullscreen Loader Overlay -->
+@if (isLoading)
+{
+    @* <div class="spinner"></div> *@
+
+    <div class="fullscreen-spinner-overlay">
+        <MudProgressCircular Indeterminate="true" Size="Size.Large" Style="height:80px;width:80px;"  Color="Color.Primary" />
+    </div>
+}
+
+@code {
+    private List<DotnetProcess> processes { get; set; } = new();
+    bool isLoading;
+    private string searchString = "";
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string fromPage { get; set; }
+
+    public string FromPageSafe => fromPage ?? "";
+
+    private async Task Refresh()
+    {
+        isLoading = true;
+        StateHasChanged();
+        processes = await processService.GetDotNetProcessesAsync(true); 
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        switch (FromPageSafe.ToLower())
+        {
+            case "processdetail":
+                processes = new();
+                isLoading = true;
+                StateHasChanged();
+                processes = await processService.GetDotNetProcessesAsync(false);
+                isLoading = false;
+                StateHasChanged();
+                break;
+            case "btdetail":
+                processes = new();
+                isLoading = true;
+                StateHasChanged();
+                processes = await processService.GetDotNetProcessesAsync(true);
+                isLoading = false;
+                StateHasChanged();
+                break;
+            default:
+                processes = new();
+                isLoading = true;
+                StateHasChanged();
+                processes = await processService.GetDotNetProcessesAsync(true);
+                isLoading = false;
+                StateHasChanged();
+                break;
+
+        }
+    }
+
+    private IEnumerable<DotnetProcess> filteredData =>
+        string.IsNullOrWhiteSpace(searchString)
+            ? processes
+            : processes.Where(p => p.ProcessName.Contains(searchString, StringComparison.OrdinalIgnoreCase));
+
+    private void Proceed(DotnetProcess process)
+    {
+        Navigation.NavigateTo($"/process-detail/{process.ProcessId}");
+    }
+}

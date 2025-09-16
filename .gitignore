@@ -1,0 +1,18 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+
+# Visual Studio files
+EasyInstrumentor/obj
+EasyInstrumentor/bin
+EasyInstrumentor/Debug*/
+EasyInstrumentor/Release*/
+
+# Ignore Visual Studio files
+EasyInstrumentor/.vs
+EasyInstrumentor/*.user
+
+# Ignore object files
+EasyInstrumentor/*.obj
