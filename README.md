@@ -20,13 +20,16 @@ This tool solves that by **capturing runtime method and class execution using ET
 
 ## ⚙️ How It Works
 
-1. On launch, the tool lists all running .NET processes.
-2. The user selects the target process.
-3. Click **Proceed** → The tool waits for the process to be restarted.
-4. Once restarted, the tool begins capturing runtime events.
-5. The user performs the activity that triggers the business transaction.
-6. Click **Stop** → The tool processes captured data.
-7. The tool displays:
+1. Download Dotnet POCO Detector zip file from the github.
+2. Then extract it to folder.
+3. Run Dotnet **POCO Detector.exe** as administrator.
+4. On launch, the tool lists all running .NET processes.
+5. The user selects the target process.
+6. Click **Proceed** → The tool waits for the process to be restarted.
+7. Once restarted, the tool begins capturing runtime events.
+8. The user performs the activity that triggers the business transaction.
+9. Click **Stop** → The tool processes captured data.
+10. The tool displays:
    - Classes and methods invoked
    - Call stacks (if available)
    - Rows with call stack = highlighted in green
