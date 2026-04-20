@@ -7,75 +7,181 @@
 @inject NavigationManager Navigation
 @using Microsoft.JSInterop
 @inject IJSRuntime JS
+@inject ISnackbar Snackbar
 
-<MudText Typo="Typo.h3" Class="mt-1">POCO Details</MudText>
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="mt-4">
 
-<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="mt-0">
-
-    <MudPaper Class="pa-4 mb-4">
-        <MudForm>
-            <MudGrid Class="mt-4">
-                <MudItem xs="12">
-                    <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="pa-1 ml-0 mr-0">
-                        <MudText Typo="Typo.h6" Class="mt-4">Details of Process : @SelectedProcessName</MudText>
-
-                        <MudGrid>
-                            <!-- Table Section -->
-                            <MudItem xs="7" md="7" Class="overflow-auto" Style="height: 400px;">
-                                <MudTable T="BTDetails" Items="SelectedProcessModules" Hover="true" Dense="true" RowClassFunc="GetRowClass" RowCl OnRowClick="OnRowClick" @ref="mudTable">
-                                    <HeaderContent>
-                                        @* <MudTh>Process Name</MudTh> *@
-                                        <MudTh>Class Name</MudTh>
-                                        <MudTh>Method Name</MudTh>
-                                    </HeaderContent>
-                                    <RowTemplate>
-                                        @* <MudTd DataLabel="Process Name">@context.ProcessName</MudTd> *@
-                                        <MudTd DataLabel="Class Name">
-                                            <div class="d-flex justify-space-between align-center w-100">
-                                                <span>@context.ClassName</span>
-                                                <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" OnClick="@(() => CopyToClipboard(context.ClassName.ToString()))" Color="Color.Default" />
-                                            </div>
-                                        </MudTd>
-                                        <MudTd DataLabel="Method Name">
-                                            <div class="d-flex justify-space-between align-center w-100">
-                                                @* <MudBadge Origin="Origin.TopRight" Content="@context.ExecutionCount" Color="Color.Primary"> *@
-                                                    <MudText>@context.MethodName</MudText>
-                                                @* </MudBadge> *@
-                                                <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" OnClick="@(() => CopyToClipboard(context.MethodName.ToString()))" Color="Color.Default" />
-                                            </div>
-                                            
-                                        </MudTd>
-                                    </RowTemplate>
-                                    <NoRecordsContent>
-                                        <MudText>No data captured..</MudText>
-                                    </NoRecordsContent>
-                                </MudTable>
-                            </MudItem>
-
-                            @if (_selectedRow != null)
-                            {
-                                    <MudItem xs="5" md="5" Class="overflow-y-auto" Style="height: 400px;">
-                                        <MudCard Class="pa-4 mt-4" Elevation="4" Style="height: 100%;">
-                                            <MudCardContent Class="overflow-y-auto" Style="white-space: normal;">
-                                                <MudText>Call Stack</MudText>
-                                                <MudText Typo="Typo.body2">@callStackBody</MudText>
-                                            </MudCardContent>
-                                        </MudCard>
-                                    </MudItem>
-                            }
-
-                        </MudGrid>
-                    </MudContainer>
-                </MudItem>
-            </MudGrid>
-        </MudForm>
+    <MudPaper Elevation="0" Class="mb-4 pa-4" Style="border-radius: 12px; border-left: 4px solid #1976d2;">
+        <MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 600;">
+            <MudIcon Icon="@Icons.Material.Filled.BubbleChart" Class="mr-2" />
+            POCO Analysis Results
+        </MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Captured classes, methods, and call stack details for <strong>@SelectedProcessName</strong>
+        </MudText>
     </MudPaper>
-</MudContainer>
 
-<MudContainer Class="ml-0">
-    <MudButton Color="Color.Tertiary" Variant="Variant.Filled" OnClick="NavigateToHome">
-        Home
-    </MudButton>
+    <MudPaper Elevation="2" Class="pa-4" Style="border-radius: 12px;">
+        
+        <!-- Stats Bar -->
+        <MudGrid Spacing="2" Class="mb-4">
+            <MudItem xs="12" sm="4">
+                <MudChip T="string" Icon="@Icons.Material.Filled.Functions" Color="Color.Info" Size="Size.Medium">
+                    @SelectedProcessModules.Count Total Methods
+                </MudChip>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudChip T="string" Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Medium">
+                    @SelectedProcessModules.Count(m => !string.IsNullOrWhiteSpace(m.CallStack)) With Call Stacks
+                </MudChip>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudChip T="string" Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Medium">
+                    @SelectedProcessModules.Count(m => string.IsNullOrWhiteSpace(m.CallStack)) Without Call Stacks
+                </MudChip>
+            </MudItem>
+        </MudGrid>
+
+        <MudDivider Class="my-4" />
+
+        <MudGrid Spacing="3">
+            <!-- Methods Table -->
+            <MudItem xs="12" md="7">
+                <MudPaper Elevation="0" Class="pa-3" Style="background: #f5f7fa; border-radius: 8px;">
+                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
+                        <MudIcon Icon="@Icons.Material.Filled.List" Class="mr-2" />
+                        Captured Methods
+                    </MudText>
+                    <div style="max-height: 600px; overflow-y: auto; background: white; border-radius: 8px;">
+                        <MudTable 
+                            T="BTDetails" 
+                            Items="SelectedProcessModules" 
+                            Hover="true" 
+                            Dense="true" 
+                            RowClassFunc="GetRowClass" 
+                            OnRowClick="OnRowClick" 
+                            @ref="mudTable"
+                            Elevation="0"
+                            Style="border-radius: 8px;">
+                            <HeaderContent>
+                                <MudTh Style="font-weight: 600;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Class" Size="Size.Small" Class="mr-1" />
+                                    Class Name
+                                </MudTh>
+                                <MudTh Style="font-weight: 600;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Code" Size="Size.Small" Class="mr-1" />
+                                    Method Name
+                                </MudTh>
+                                <MudTh Style="font-weight: 600; text-align: center;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Timeline" Size="Size.Small" />
+                                </MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Class Name">
+                                    <div class="d-flex justify-space-between align-center">
+                                        <MudText Typo="Typo.body2" Style="font-family: 'Consolas', monospace; font-size: 0.85rem;">
+                                            @context.ClassName
+                                        </MudText>
+                                        <MudIconButton 
+                                            Icon="@Icons.Material.Filled.ContentCopy" 
+                                            Size="Size.Small" 
+                                            OnClick="@(() => CopyToClipboard(context.ClassName.ToString()))" 
+                                            Color="Color.Default" 
+                                            Title="Copy class name" />
+                                    </div>
+                                </MudTd>
+                                <MudTd DataLabel="Method Name">
+                                    <div class="d-flex justify-space-between align-center">
+                                        <MudText Typo="Typo.body2" Style="font-family: 'Consolas', monospace; font-size: 0.85rem;">
+                                            @context.MethodName
+                                        </MudText>
+                                        <MudIconButton 
+                                            Icon="@Icons.Material.Filled.ContentCopy" 
+                                            Size="Size.Small" 
+                                            OnClick="@(() => CopyToClipboard(context.MethodName.ToString()))" 
+                                            Color="Color.Default"
+                                            Title="Copy method name" />
+                                    </div>
+                                </MudTd>
+                                <MudTd DataLabel="Stack" Style="text-align: center;">
+                                    @if (!string.IsNullOrWhiteSpace(context.CallStack))
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" Title="Has call stack" />
+                                    }
+                                    else
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.RemoveCircle" Color="Color.Default" Size="Size.Small" Title="No call stack" />
+                                    }
+                                </MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <MudAlert Severity="Severity.Info" Class="my-4">
+                                    <MudIcon Icon="@Icons.Material.Filled.Info" Class="mr-2" />
+                                    No methods captured during trace analysis
+                                </MudAlert>
+                            </NoRecordsContent>
+                        </MudTable>
+                    </div>
+                </MudPaper>
+            </MudItem>
+
+            <!-- Call Stack Panel -->
+            <MudItem xs="12" md="5">
+                <MudPaper Elevation="2" Class="pa-4" Style="border-radius: 8px; height: 100%; min-height: 600px;">
+                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
+                        <MudIcon Icon="@Icons.Material.Filled.AccountTree" Class="mr-2" />
+                        Call Stack Details
+                    </MudText>
+                    <MudDivider Class="mb-3" />
+                    
+                    @if (_selectedRow != null && !string.IsNullOrWhiteSpace(_selectedRow.CallStack))
+                    {
+                        <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
+                            <strong>@_selectedRow.ClassName</strong> → <strong>@_selectedRow.MethodName</strong>
+                        </MudAlert>
+                        
+                        <MudPaper Elevation="0" Class="pa-3" Style="background: #263238; border-radius: 8px; max-height: 500px; overflow-y: auto;">
+                            <pre style="color: #a6e22e; font-family: 'Consolas', monospace; font-size: 0.8rem; margin: 0; white-space: pre-wrap; word-break: break-word;">@callStackBody</pre>
+                        </MudPaper>
+                        
+                        <MudButton 
+                            StartIcon="@Icons.Material.Filled.ContentCopy" 
+                            Variant="Variant.Outlined" 
+                            Color="Color.Primary" 
+                            FullWidth="true"
+                            Class="mt-3"
+                            OnClick="@(() => CopyToClipboard(callStackBody))"
+                            Style="border-radius: 8px; text-transform: none;">
+                            Copy Call Stack
+                        </MudButton>
+                    }
+                    else
+                    {
+                        <MudPaper Elevation="0" Class="pa-8 d-flex flex-column align-center justify-center" Style="background: #f5f7fa; border-radius: 8px; min-height: 400px;">
+                            <MudIcon Icon="@Icons.Material.Filled.TouchApp" Style="font-size: 64px; color: #ccc; margin-bottom: 16px;" />
+                            <MudText Typo="Typo.h6" Color="Color.Secondary">Select a method to view its call stack</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+                                Click on any row with a 
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" Class="mx-1" />
+                                indicator
+                            </MudText>
+                        </MudPaper>
+                    }
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <MudPaper Elevation="2" Class="pa-4 mt-4" Style="border-radius: 12px;">
+        <MudButton 
+            Color="Color.Primary" 
+            Variant="Variant.Filled" 
+            OnClick="NavigateToHome"
+            StartIcon="@Icons.Material.Filled.Home"
+            Style="border-radius: 8px; text-transform: none;">
+            Return to Home
+        </MudButton>
+    </MudPaper>
 </MudContainer>
 
 
@@ -122,7 +228,7 @@
 
     private void NavigateToHome()
     {
-        captureService.StopCapture(true);
+        _ = captureService.StopCapture(true);
         Navigation.NavigateTo($"/?fromPage=btdetail");
     }
 
@@ -132,8 +238,8 @@
     // Method to conditionally apply row class based on CallStack
     private string GetRowClass(BTDetails item, int rowNumber)
     {
-        string baseClass = "mud-table-row"; // Assuming this is the existing class for rows
-        string additionalClass = !string.IsNullOrWhiteSpace(item.CallStack) ? "mud-table-row-green" : string.Empty;
+        string baseClass = "mud-table-row"; 
+        string additionalClass = !string.IsNullOrWhiteSpace(item.CallStack) ? "row-with-callstack" : string.Empty;
         string highlightingClass = string.Empty;
 
         if (mudTable.SelectedItem != null && mudTable.SelectedItem.Equals(item))
@@ -142,7 +248,6 @@
             highlightingClass = "selected";
         }
 
-        // Append the additional class to the existing base class
         return $"{baseClass} {additionalClass} {highlightingClass}".Trim();
     }
 
@@ -156,12 +261,14 @@
         else
         {
             callStackBody = "No Call Stack Available..";
+            Snackbar.Add("This method does not have a call stack available", Severity.Warning);
         }
     }
 
     async Task CopyToClipboard(string text)
     {
         await JS.InvokeVoidAsync("navigator.clipboard.writeText", text);
+        Snackbar.Add("Copied to clipboard!", Severity.Success);
     }
 
     #endregion Events

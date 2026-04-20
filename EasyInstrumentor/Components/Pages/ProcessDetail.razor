@@ -5,58 +5,157 @@
 @inject CaptureService captureService
 @inject NavigationManager Navigation
 
-<h3>Process Details</h3>
-@if (_process == null)
-{
-    <MudProgressCircular Indeterminate="true" />
-}
-else
-{
-    <MudPaper Class="p-4 mt-4" Elevation="3" >
-        <MudText Typo="Typo.h6">Current Process Information</MudText>
-        <MudText>ID: @_process.ProcessId</MudText>
-        <MudText>Name: @_process.ProcessName</MudText>
-        <MudText>CommandLine: @_process.CommandLine</MudText>
-        <MudDivider Class="my-2" />
-        <MudText Color="Color.Warning">We will start capturing class, method, and call stack events once the process restarts.</MudText>
-        <MudText Color="Color.Dark">Please restart the application and perform the transaction which you want to monitor.</MudText>
-
-        @if (_newProcess != null)
-        {
-            <MudDivider Class="my-2" />
-            <MudText Typo="Typo.h6">New Process Started</MudText>
-            <MudText>New PID: @_newProcess.ProcessId</MudText>
-            <MudText>Name: @_newProcess.ProcessName</MudText>
-
-
-            <div class="d-flex align-items-center" style="margin-top: 60px;">
-                @* <MudProgressCircular Indeterminate="true" Class="my-2 mr-2" />
-                <MudButton Color="Color.Secondary" Variant="Variant.Filled" OnClick="NavigateToBtDetails" Disabled="@IsSubmitting">
-                    Stop & View Captured Data
-                </MudButton> *@
-
-                <MudButton Disabled="@IsSubmitting" OnClick="NavigateToBtDetails" Variant="Variant.Filled" Color="Color.Secondary">
-                    @if (IsSubmitting)
-                    {
-                        <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="my-2 mr-2" />
-                        <MudText Class="ms-2">Processing</MudText>
-                    }
-                    else
-                    {
-                        <MudText>Stop & View Captured Data</MudText>
-                    }
-                </MudButton>
-
-            </div>
-        }
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    
+    <MudPaper Elevation="0" Class="mb-4 pa-4" Style="border-radius: 12px; border-left: 4px solid #1976d2;">
+        <MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 600;">
+            <MudIcon Icon="@Icons.Material.Filled.MonitorHeart" Class="mr-2" />
+            Process Monitoring
+        </MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Capture class, method, and call stack events during application execution
+        </MudText>
     </MudPaper>
 
-    <MudContainer Class="mt-4 p-4 ml-0">
-        <MudButton Color="Color.Tertiary" Variant="Variant.Filled" OnClick="NavigateToHome">
-            Back
-        </MudButton>
-    </MudContainer>
-}
+    @if (_process == null)
+    {
+        <MudPaper Elevation="2" Class="pa-8 d-flex flex-column align-center justify-center" Style="border-radius: 12px; min-height: 300px;">
+            <MudProgressCircular Indeterminate="true" Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.h6" Class="mt-4">Loading process information...</MudText>
+        </MudPaper>
+    }
+    else
+    {
+        <MudGrid Spacing="3">
+            <!-- Original Process Info -->
+            <MudItem xs="12" md="6">
+                <MudPaper Elevation="2" Class="pa-4" Style="border-radius: 12px; height: 100%;">
+                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
+                        <MudIcon Icon="@Icons.Material.Filled.Info" Class="mr-2" Color="Color.Info" />
+                        Original Process
+                    </MudText>
+                    <MudDivider Class="mb-3" />
+                    <MudList T="string" Dense="true">
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Tag">
+                            <MudText Typo="Typo.body2">
+                                <strong>Process ID:</strong> <MudChip T="string" Size="Size.Small">@_process.ProcessId</MudChip>
+                            </MudText>
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Label">
+                            <MudText Typo="Typo.body2">
+                                <strong>Name:</strong> @_process.ProcessName
+                            </MudText>
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Terminal">
+                            <MudText Typo="Typo.body2" Style="word-break: break-all;">
+                                <strong>Command Line:</strong><br />
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@_process.CommandLine</MudText>
+                            </MudText>
+                        </MudListItem>
+                    </MudList>
+                </MudPaper>
+            </MudItem>
+
+            <!-- New Process Info / Instructions -->
+            <MudItem xs="12" md="6">
+                @if (_newProcess != null)
+                {
+                    <MudPaper Elevation="2" Class="pa-4" Style="border-radius: 12px; height: 100%; background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);">
+                        <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600; color: white;">
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Class="mr-2" Style="color: white;" />
+                            New Process Detected!
+                        </MudText>
+                        <MudDivider Class="mb-3" Style="background: rgba(255,255,255,0.3);" />
+                        <MudList T="string" Dense="true">
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.Tag" IconColor="Color.Surface">
+                                <MudText Typo="Typo.body2" Style="color: white;">
+                                    <strong>Process ID:</strong> <MudChip T="string" Size="Size.Small" Style="background: white; color: #2e7d32;">@_newProcess.ProcessId</MudChip>
+                                </MudText>
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.Label" IconColor="Color.Surface">
+                                <MudText Typo="Typo.body2" Style="color: white;">
+                                    <strong>Name:</strong> @_newProcess.ProcessName
+                                </MudText>
+                            </MudListItem>
+                        </MudList>
+                        
+                        <MudDivider Class="my-3" Style="background: rgba(255,255,255,0.3);" />
+                        
+                        <MudButton 
+                            Disabled="@IsSubmitting" 
+                            OnClick="NavigateToBtDetails" 
+                            Variant="Variant.Filled" 
+                            Color="Color.Surface"
+                            FullWidth="true"
+                            Size="Size.Large"
+                            StartIcon="@Icons.Material.Filled.Stop"
+                            Style="border-radius: 8px; text-transform: none; font-weight: 600;">
+                            @if (IsSubmitting)
+                            {
+                                <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+                                <span>Processing trace data...</span>
+                            }
+                            else
+                            {
+                                <span>Stop Capture & View Results</span>
+                            }
+                        </MudButton>
+                    </MudPaper>
+                }
+                else
+                {
+                    <MudPaper Elevation="2" Class="pa-4" Style="border-radius: 12px; height: 100%; background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);">
+                        <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600; color: white;">
+                            <MudIcon Icon="@Icons.Material.Filled.HourglassEmpty" Class="mr-2" Style="color: white;" />
+                            Waiting for Restart
+                        </MudText>
+                        <MudDivider Class="mb-3" Style="background: rgba(255,255,255,0.3);" />
+                        <MudText Typo="Typo.body1" Style="color: white;" Class="mb-3">
+                            Trace capture is now active. Please:
+                        </MudText>
+                        <MudList T="string" Dense="true">
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.RestartAlt" IconColor="Color.Surface">
+                                <MudText Style="color: white;">Restart the application</MudText>
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.PlayArrow" IconColor="Color.Surface">
+                                <MudText Style="color: white;">Perform your target transactions</MudText>
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.Timer" IconColor="Color.Surface">
+                                <MudText Style="color: white;">Wait for the new process to be detected</MudText>
+                            </MudListItem>
+                        </MudList>
+                        <MudAlert Severity="Severity.Info" Class="mt-3" Style="background: rgba(255,255,255,0.2); color: white;">
+                            <MudText Typo="Typo.body2" Style="color: white;">
+                                <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="mr-1" />
+                                Auto-detecting process restart...
+                            </MudText>
+                        </MudAlert>
+                    </MudPaper>
+                }
+            </MudItem>
+        </MudGrid>
+
+        <MudPaper Elevation="2" Class="pa-4 mt-4 d-flex justify-space-between align-center" Style="border-radius: 12px;">
+            <MudButton 
+                Color="Color.Secondary" 
+                Variant="Variant.Outlined" 
+                OnClick="NavigateToHome"
+                StartIcon="@Icons.Material.Filled.ArrowBack"
+                Style="border-radius: 8px; text-transform: none;">
+                Cancel & Go Back
+            </MudButton>
+            
+            @if (_newProcess == null)
+            {
+                <MudChip T="string" Icon="@Icons.Material.Filled.Visibility" Color="Color.Primary" Size="Size.Medium">
+                    <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+                    Monitoring for restart...
+                </MudChip>
+            }
+        </MudPaper>
+    }
+</MudContainer>
+
 @code {
     [Parameter]
     public int OldPid { get; set; }
@@ -73,16 +172,27 @@ else
         _newProcess = null;
         _processFound = false;
         _process = await ProcessService.GetProcessByIdAsync(OldPid);
-        captureService.StartCapture(_process.CommandLine, OldPid);
+        
+        // Start capture without awaiting - it will run in background
+        _ = captureService.StartCapture(_process.CommandLine, OldPid);
+        
+        // Give it a moment to initialize
+        await Task.Delay(500);
+        
         StartMonitoringForNewProcess();
     }
 
     private void StartMonitoringForNewProcess()
     {
-        _monitorTimer = new Timer(async _ =>
-        {
-            if (_process == null || _processFound) return;
+        _monitorTimer = new Timer(_ => _ = MonitorProcessAsync(), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+    }
 
+    private async Task MonitorProcessAsync()
+    {
+        if (_process == null || _processFound) return;
+
+        try
+        {
             var match = await captureService.GetNewProcessData();
             if (match != null)
             {
@@ -90,9 +200,13 @@ else
                 _processFound = true;
                 _monitorTimer?.Dispose();
                 _monitorTimer = null;
-                InvokeAsync(StateHasChanged);
+                await InvokeAsync(StateHasChanged);
             }
-        }, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(500));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error monitoring process: {ex.Message}");
+        }
     }
 
     private async void NavigateToBtDetails()
@@ -106,13 +220,14 @@ else
 
             Navigation.NavigateTo(url);
         }
+        IsSubmitting = false;
     }
 
 
-    private void NavigateToHome()
+    private async void NavigateToHome()
     {
         Reset();
-        captureService.StopCapture(true);
+        await captureService.StopCapture(true);
         Navigation.NavigateTo($"/?fromPage=processdetail");
     }
 

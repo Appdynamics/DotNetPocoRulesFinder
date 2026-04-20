@@ -7,6 +7,7 @@ using Microsoft.VisualBasic;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -26,15 +27,19 @@ namespace EasyInstrumentor.Services.Capture
 
         public CaptureHelperService(IConfiguration config)
         {
-
             _configuration = config;
-
             LoadConfig();
+            
             // Setup FileSystemWatcher to watch appsettings.json
-            _watcher = new FileSystemWatcher(AppContext.BaseDirectory, "appsettings.json");
-            _watcher.NotifyFilter = NotifyFilters.LastWrite;
-            _watcher.Changed += OnConfigChanged;
-            _watcher.EnableRaisingEvents = true;
+            var appSettingsPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+            if (File.Exists(appSettingsPath))
+            {
+                var directory = Path.GetDirectoryName(appSettingsPath);
+                _watcher = new FileSystemWatcher(directory, "appsettings.json");
+                _watcher.NotifyFilter = NotifyFilters.LastWrite;
+                _watcher.Changed += OnConfigChanged;
+                _watcher.EnableRaisingEvents = true;
+            }
         }
 
 

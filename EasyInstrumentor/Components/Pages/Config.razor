@@ -8,34 +8,162 @@
 @inject Microsoft.AspNetCore.Components.NavigationManager NavManager
 @inject ISnackbar Snackbar
 
-<MudText Typo="Typo.h3" Inline="true">Configure Application</MudText>
-<EditForm Model="@formModel" OnValidSubmit="OnValidSubmit">
-    <DataAnnotationsValidator />
-    <MudGrid Style="padding:16px; margin:16px;">
-        <MudItem xs=10 >
-            <MudCard>
-                <MudCardContent>
-                    <MudTextField Label="Controller Host" @bind-Value="@formModel.ControllerHost" Disabled="true" />
-                    <MudTextField Label="Controller Port" @bind-Value="@formModel.ControllerPort" Disabled="true" />
-                    <MudTextField Label="Default Controller Application" @bind-Value="@formModel.DefaultApplicationName" Disabled="true" />
-                    <MudTextField Label="Executable" @bind-Value="@formModel.StandaloneExecutable" For="@(() => formModel.StandaloneExecutable)" />
-                    <MudTextField Label="Command Line" @bind-Value="@formModel.StandaloneCommandline" />
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    
+    <MudPaper Elevation="0" Class="mb-4 pa-4" Style="border-radius: 12px; border-left: 4px solid #1976d2;">
+        <MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 600;">
+            <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mr-2" />
+            Application Configuration
+        </MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Configure standalone application settings for monitoring
+        </MudText>
+    </MudPaper>
 
-                    @if (formModel.HasMultiControllerApplication)
+    <EditForm Model="@formModel" OnValidSubmit="OnValidSubmit">
+        <DataAnnotationsValidator />
+        <MudPaper Elevation="2" Class="pa-6" Style="border-radius: 12px;">
+            <MudGrid Spacing="3">
+                <!-- Controller Information Section -->
+                <MudItem xs="12">
+                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
+                        <MudIcon Icon="@Icons.Material.Filled.Cloud" Class="mr-2" Color="Color.Info" />
+                        Controller Information
+                    </MudText>
+                    <MudDivider Class="mb-3" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField 
+                        Label="Controller Host" 
+                        @bind-Value="@formModel.ControllerHost" 
+                        Disabled="true" 
+                        Variant="Variant.Outlined"
+                        Adornment="Adornment.Start"
+                        AdornmentIcon="@Icons.Material.Filled.Dns" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField 
+                        Label="Controller Port" 
+                        @bind-Value="@formModel.ControllerPort" 
+                        Disabled="true" 
+                        Variant="Variant.Outlined"
+                        Adornment="Adornment.Start"
+                        AdornmentIcon="@Icons.Material.Filled.Cable" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField 
+                        Label="Default Controller Application" 
+                        @bind-Value="@formModel.DefaultApplicationName" 
+                        Disabled="true" 
+                        Variant="Variant.Outlined"
+                        Adornment="Adornment.Start"
+                        AdornmentIcon="@Icons.Material.Filled.Apps" />
+                </MudItem>
+
+                <!-- Application Configuration Section -->
+                <MudItem xs="12" Class="mt-4">
+                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
+                        <MudIcon Icon="@Icons.Material.Filled.AppSettingsAlt" Class="mr-2" Color="Color.Primary" />
+                        Standalone Application Settings
+                    </MudText>
+                    <MudDivider Class="mb-3" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField 
+                        Label="Executable Path" 
+                        @bind-Value="@formModel.StandaloneExecutable" 
+                        For="@(() => formModel.StandaloneExecutable)"
+                        Variant="Variant.Outlined"
+                        Adornment="Adornment.Start"
+                        AdornmentIcon="@Icons.Material.Filled.Terminal"
+                        HelperText="Full path to the executable file" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField 
+                        Label="Command Line Arguments" 
+                        @bind-Value="@formModel.StandaloneCommandline"
+                        Variant="Variant.Outlined"
+                        Lines="2"
+                        Adornment="Adornment.Start"
+                        AdornmentIcon="@Icons.Material.Filled.Code"
+                        HelperText="Optional command line arguments for the application" />
+                </MudItem>
+
+                @if (formModel.HasMultiControllerApplication)
+                {
+                    <MudItem xs="12" md="6">
+                        <MudTextField 
+                            Label="Application Name" 
+                            @bind-Value="@formModel.StandaloneApplicationName"
+                            Variant="Variant.Outlined"
+                            Adornment="Adornment.Start"
+                            AdornmentIcon="@Icons.Material.Filled.Label" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField 
+                            Label="Tier Name" 
+                            @bind-Value="@formModel.StandaloneTierName" 
+                            For="@(() => formModel.StandaloneTierName)"
+                            Variant="Variant.Outlined"
+                            Adornment="Adornment.Start"
+                            AdornmentIcon="@Icons.Material.Filled.Layers"
+                            HelperText="Name of the application tier" />
+                    </MudItem>
+                }
+                else
+                {
+                    <MudItem xs="12">
+                        <MudTextField 
+                            Label="Tier Name" 
+                            @bind-Value="@formModel.StandaloneTierName" 
+                            For="@(() => formModel.StandaloneTierName)"
+                            Variant="Variant.Outlined"
+                            Adornment="Adornment.Start"
+                            AdornmentIcon="@Icons.Material.Filled.Layers"
+                            HelperText="Name of the application tier" />
+                    </MudItem>
+                }
+            </MudGrid>
+
+            <!-- Action Buttons -->
+            <MudDivider Class="my-4" />
+            <div class="d-flex justify-space-between align-center">
+                <MudButton 
+                    OnClick="GoBack" 
+                    Variant="Variant.Outlined" 
+                    Color="Color.Secondary"
+                    StartIcon="@Icons.Material.Filled.ArrowBack"
+                    Style="border-radius: 8px; text-transform: none;">
+                    Cancel
+                </MudButton>
+                
+                <MudButton 
+                    ButtonType="ButtonType.Submit" 
+                    Disabled="isSubmitted" 
+                    Variant="Variant.Filled" 
+                    Color="Color.Primary"
+                    EndIcon="@Icons.Material.Filled.Save"
+                    Style="border-radius: 8px; text-transform: none; padding: 8px 24px;">
+                    @if (isSubmitted)
                     {
-                        <MudTextField Label="Application Name" @bind-Value="@formModel.StandaloneApplicationName" />
+                        <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+                        <span>Saved</span>
                     }
-
-                    <MudTextField Label="Tier Name" @bind-Value="@formModel.StandaloneTierName" For="@(() => formModel.StandaloneTierName)" />
-                </MudCardContent>
-                <MudCardActions>
-                    <MudButton ButtonType="ButtonType.Submit" Disabled="isSubmitted" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto mr-4">Submit</MudButton>
-                    <MudButton OnClick="GoBack" Variant="Variant.Filled" Color="Color.Secondary" >Back</MudButton>
-                </MudCardActions>
-            </MudCard>
-        </MudItem>
-    </MudGrid>
-</EditForm>
+                    else
+                    {
+                        <span>Save Configuration</span>
+                    }
+                </MudButton>
+            </div>
+        </MudPaper>
+    </EditForm>
+</MudContainer>
 
 @code {
 
@@ -94,14 +222,12 @@
         if(isSuccess)
         {
             isSubmitted = true;
-            // Show success snackbar
             Snackbar.Add(message, Severity.Success);
 
         }
         else
         {
             isSubmitted = false;
-            // Show success snackbar
             Snackbar.Add(message, Severity.Warning);
         }
 
@@ -110,7 +236,7 @@
 
     private void GoBack()
     {
-        NavManager.NavigateTo("/capture?FromConfigPage=true" + (isSubmitted?"&ProcessId="+ProcessId:"")); // Change to actual previous page
+        NavManager.NavigateTo("/capture?FromConfigPage=true" + (isSubmitted?"&ProcessId="+ProcessId:""));
     }
 
 

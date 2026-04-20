@@ -9,6 +9,9 @@ using System.Reflection;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 #endif
+using System.IO;
+using Microsoft.Maui.Controls.Compatibility;
+using Microsoft.Maui.ApplicationModel;
 
 namespace EasyInstrumentor
 {
@@ -24,10 +27,26 @@ namespace EasyInstrumentor
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                 });
 
-
-
-            builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-
+            // Load configuration from appsettings.json embedded in the app
+            var assembly = Assembly.GetExecutingAssembly();
+            using var stream = assembly.GetManifestResourceStream("EasyInstrumentor.appsettings.json");
+            
+            if (stream != null)
+            {
+                var config = new ConfigurationBuilder()
+                    .AddJsonStream(stream)
+                    .Build();
+                builder.Configuration.AddConfiguration(config);
+            }
+            else
+            {
+                // Try loading from file system as fallback
+                var appSettingsPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+                if (File.Exists(appSettingsPath))
+                {
+                    builder.Configuration.AddJsonFile(appSettingsPath, optional: true, reloadOnChange: false);
+                }
+            }
 
 #if WINDOWS
         builder.ConfigureLifecycleEvents(events =>

@@ -1,16 +1,59 @@
 ﻿@page "/Home"
 
-<MudGrid MaxWidth="MaxWidth.Small" Class="pa-18">
-    <MudItem Class="relative" xs="12" md="12" lg="12">
-        <MudText Typo="Typo.h3">Welcome to</MudText>
-        <MudText Typo="Typo.h3" Inline="true">Dotnet POCO Detector</MudText>
-        <div class="pl-1 my-4">
-            <MudText Typo="Typo.subtitle1" Class="mud-text-secondary">
-                This wizard will guide you through the configuration process of standalone applications.
-            </MudText>
-        </div>
-        <div class="d-flex py-4 mb-16 mb-md-0">
-            <MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.Bookmark" Label="Get started" Href="/capture" />
-        </div>
-    </MudItem>
-</MudGrid>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+    <MudPaper Elevation="0" Class="pa-8" Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px;">
+        <MudGrid>
+            <MudItem xs="12" Class="d-flex flex-column align-center justify-center text-center" Style="min-height: 300px;">
+                <MudIcon Icon="@Icons.Material.Filled.Analytics" Style="font-size: 80px; color: white; margin-bottom: 24px;" />
+                <MudText Typo="Typo.h3" Style="color: white; font-weight: 600; margin-bottom: 16px;">
+                    Welcome to
+                </MudText>
+                <MudText Typo="Typo.h2" Style="color: white; font-weight: 700; margin-bottom: 24px;">
+                    Dotnet POCO Detector
+                </MudText>
+                <MudText Typo="Typo.h6" Style="color: rgba(255,255,255,0.9); max-width: 600px; margin-bottom: 32px;">
+                    Advanced ETW tracing tool for analyzing .NET applications and identifying POCO classes with call stack analysis
+                </MudText>
+                <MudButton 
+                    Variant="Variant.Filled" 
+                    Size="Size.Large"
+                    Color="Color.Surface"
+                    Href="/capture"
+                    StartIcon="@Icons.Material.Filled.PlayArrow"
+                    Style="padding: 12px 32px; border-radius: 8px; text-transform: none; font-size: 1.1rem;">
+                    Get Started
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <MudGrid Class="mt-8">
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="2" Class="pa-6" Style="border-radius: 12px; height: 100%;">
+                <MudIcon Icon="@Icons.Material.Filled.Search" Color="Color.Primary" Style="font-size: 48px; margin-bottom: 16px;" />
+                <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Process Discovery</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Automatically detect and list all running .NET processes for analysis
+                </MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="2" Class="pa-6" Style="border-radius: 12px; height: 100%;">
+                <MudIcon Icon="@Icons.Material.Filled.Timeline" Color="Color.Primary" Style="font-size: 48px; margin-bottom: 16px;" />
+                <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Real-time Tracing</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Capture JIT compilation, thread activity, and method execution in real-time
+                </MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="2" Class="pa-6" Style="border-radius: 12px; height: 100%;">
+                <MudIcon Icon="@Icons.Material.Filled.CallToAction" Color="Color.Primary" Style="font-size: 48px; margin-bottom: 16px;" />
+                <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Call Stack Analysis</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    View detailed call stacks and execution paths for captured methods
+                </MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>

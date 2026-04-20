@@ -46,63 +46,81 @@ namespace EasyInstrumentor.Services.Capture
             _captureHelperService = captureHelperService;
         }
 
-        public async void StartCapture(string commandLine, int oldPid)
+        public async Task StartCapture(string commandLine, int oldPid)
         {
-            await Task.Run(() => CaptureTraceData(commandLine, oldPid));
+            await CaptureTraceDataAsync(commandLine, oldPid);
         }
 
-        public void CaptureTraceData(string commandLine, int oldPid)
+        public async Task CaptureTraceDataAsync(string commandLine, int oldPid)
         {
-            string symbolPath = SymbolPath.SymbolPathFromEnvironment;
+            _ = Task.Run(() =>
+            {
+                string symbolPath = SymbolPath.SymbolPathFromEnvironment;
 
-            // If _NT_SYMBOL_PATH isn't set, force it to default to the one mentioned in the README of the project.
-            //if (string.IsNullOrWhiteSpace(symbolPath))
-            //{
-            //    symbolPath = @";SRV*C:\Symbols*https://msdl.microsoft.com/download/symbols;SRV*C:\Symbols*https://nuget.smbsrc.net;SRV*C:\Symbols*https://referencesource.microsoft.com/symbols";
-            //}
+                // If _NT_SYMBOL_PATH isn't set, force it to default to the one mentioned in the README of the project.
+                //if (string.IsNullOrWhiteSpace(symbolPath))
+                //{
+                //    symbolPath = @";SRV*C:\Symbols*https://msdl.microsoft.com/download/symbols;SRV*C:\Symbols*https://nuget.smbsrc.net;SRV*C:\Symbols*https://referencesource.microsoft.com/symbols";
+                //}
 
-            //m_symbolReader = new SymbolReader(TextWriter.Null, symbolPath);
-            //m_symbolReader.SecurityCheck = path => true;
+                //m_symbolReader = new SymbolReader(TextWriter.Null, symbolPath);
+                //m_symbolReader.SecurityCheck = path => true;
 
-            List<string> activityid = new List<string>();
-            userSession = new TraceEventSession("SimpleMontitorSession", "MyEventsFile.etl");
-            activeUserSession = new TraceEventSession("ActiveUserSession");
-
-
-            activeUserSession.EnableKernelProvider(KernelTraceEventParser.Keywords.Process,
-                stackCapture: KernelTraceEventParser.Keywords.Thread
-                );
+                List<string> activityid = new List<string>();
+                userSession = new TraceEventSession("SimpleMontitorSession", "MyEventsFile.etl");
+                activeUserSession = new TraceEventSession("ActiveUserSession");
 
 
-
-            userSession.EnableKernelProvider(KernelTraceEventParser.Keywords.Process
-                | KernelTraceEventParser.Keywords.ImageLoad
-                | KernelTraceEventParser.Keywords.Thread,
-                stackCapture: KernelTraceEventParser.Keywords.Thread
-                );
-            userSession.EnableProvider(ClrTraceEventParser.ProviderGuid, TraceEventLevel.Verbose,
-                (ulong)(ClrTraceEventParser.Keywords.Loader
-                | ClrTraceEventParser.Keywords.Stack
-                | ClrTraceEventParser.Keywords.Threading
-                | ClrTraceEventParser.Keywords.Jit
-                ),
-                options: new TraceEventProviderOptions { StacksEnabled = true }
-                );
-            // Needed for JIT Compile code that was already compiled. 
-            userSession.EnableProvider(ClrRundownTraceEventParser.ProviderGuid, TraceEventLevel.Verbose,
-                (ulong)(ClrTraceEventParser.Keywords.Jit |
-                ClrTraceEventParser.Keywords.Loader |
-                ClrTraceEventParser.Keywords.Stack |
-                ClrTraceEventParser.Keywords.Threading),
-                options: new TraceEventProviderOptions { StacksEnabled = true }
-                );
+                activeUserSession.EnableKernelProvider(KernelTraceEventParser.Keywords.Process,
+                    stackCapture: KernelTraceEventParser.Keywords.Thread
+                    );
 
 
-            traceLogSource = TraceLog.CreateFromTraceEventSession(activeUserSession);
 
-            traceLogSource.Kernel.ProcessStart += delegate (ProcessTraceData data)
+                userSession.EnableKernelProvider(KernelTraceEventParser.Keywords.Process
+                    | KernelTraceEventParser.Keywords.ImageLoad
+                    | KernelTraceEventParser.Keywords.Thread,
+                    stackCapture: KernelTraceEventParser.Keywords.Thread
+                    );
+                userSession.EnableProvider(ClrTraceEventParser.ProviderGuid, TraceEventLevel.Verbose,
+                    (ulong)(ClrTraceEventParser.Keywords.Loader
+                    | ClrTraceEventParser.Keywords.Stack
+                    | ClrTraceEventParser.Keywords.Threading
+                    | ClrTraceEventParser.Keywords.Jit
+                    ),
+                    options: new TraceEventProviderOptions { StacksEnabled = true }
+                    );
+                // Needed for JIT Compile code that was already compiled. 
+                userSession.EnableProvider(ClrRundownTraceEventParser.ProviderGuid, TraceEventLevel.Verbose,
+                    (ulong)(ClrTraceEventParser.Keywords.Jit |
+                    ClrTraceEventParser.Keywords.Loader |
+                    ClrTraceEventParser.Keywords.Stack |
+                    ClrTraceEventParser.Keywords.Threading),
+                    options: new TraceEventProviderOptions { StacksEnabled = true }
+                    );
+
+
+
+                traceLogSource = TraceLog.CreateFromTraceEventSession(activeUserSession);
+
+                traceLogSource.Kernel.ProcessStart += delegate (ProcessTraceData data)
+                    {
+
+                        if (_captureHelperService.IsValidProcess(data, commandLine, oldPid))
+                        {
+                            CaptureHelperService.lstProcess.Add(new DotnetProcess()
+                            {
+                                ProcessId = data.ProcessID,
+                                ProcessName = data.ProcessName,
+                                ImageFileName = data.ImageFileName,
+                                IsDotnet = true,
+                            });
+                        }
+
+                    };
+
+                traceLogSource.Kernel.ProcessDCStart += delegate (ProcessTraceData data)
                 {
-
                     if (_captureHelperService.IsValidProcess(data, commandLine, oldPid))
                     {
                         CaptureHelperService.lstProcess.Add(new DotnetProcess()
@@ -113,25 +131,14 @@ namespace EasyInstrumentor.Services.Capture
                             IsDotnet = true,
                         });
                     }
-
                 };
 
-            traceLogSource.Kernel.ProcessDCStart += delegate (ProcessTraceData data)
-            {
-                if (_captureHelperService.IsValidProcess(data, commandLine, oldPid))
-                {
-                    CaptureHelperService.lstProcess.Add(new DotnetProcess()
-                    {
-                        ProcessId = data.ProcessID,
-                        ProcessName = data.ProcessName,
-                        ImageFileName = data.ImageFileName,
-                        IsDotnet = true,
-                    });
-                }
-            };
+                // This call blocks - it needs to run on background thread WITHOUT awaiting
+                traceLogSource.Process();
+            });
 
-            traceLogSource.Process();
-
+            // Return immediately, don't wait for Process() to complete
+            await Task.CompletedTask;
         }
         internal async Task<bool> StopCapture(bool terminate)
         {
@@ -145,7 +152,7 @@ namespace EasyInstrumentor.Services.Capture
                 return true;
             }
             else
-                return await Task.Run(() => ProcessData());
+                return await ProcessDataAsync().ConfigureAwait(false);
 
         }
 
@@ -180,82 +187,85 @@ namespace EasyInstrumentor.Services.Capture
 
         }
 
-        internal bool ProcessData()
+        internal async Task<bool> ProcessDataAsync()
         {
-            using (var source = Microsoft.Diagnostics.Tracing.Etlx.TraceLog.OpenOrConvert("MyEventsFile.etl").Events.GetSource())
+            return await Task.Run(() =>
             {
-                // Get the stream of starts.
-                IObservable<MethodJittingStartedTraceData> jitStartStream = source.Clr.Observe<MethodJittingStartedTraceData>("Method/JittingStarted");
+                using (var source = Microsoft.Diagnostics.Tracing.Etlx.TraceLog.OpenOrConvert("MyEventsFile.etl").Events.GetSource())
+                {
+                    // Get the stream of starts.
+                    IObservable<MethodJittingStartedTraceData> jitStartStream = source.Clr.Observe<MethodJittingStartedTraceData>("Method/JittingStarted");
 
-                // And the stream of ends.
-                IObservable<MethodLoadUnloadVerboseTraceData> jitEndStream = source.Clr.Observe<MethodLoadUnloadVerboseTraceData>("Method/LoadVerbose");
+                    // And the stream of ends.
+                    IObservable<MethodLoadUnloadVerboseTraceData> jitEndStream = source.Clr.Observe<MethodLoadUnloadVerboseTraceData>("Method/LoadVerbose");
 
-                int nProcessID = Process.GetCurrentProcess().Id;
-                var jitTimes =
-                    from start in jitStartStream //.Where(e => e.MethodID == e.MethodID && e.ProcessID == e.ProcessID && e.ProcessID != nProcessID && CaptureHelperService.lstProcess.Where(x => x.ProcessId == e.ProcessID).Count() > 0).Take(1)
-                    from end in jitEndStream.Where(e => start.MethodID == e.MethodID && start.ProcessID == e.ProcessID
-                    && start.ProcessID != nProcessID //&& start.ProcessID == 44840
-                    && CaptureHelperService.lstProcess.Where(x => x.ProcessId == start.ProcessID).Count() > 0).Take(1)
-                    select new JitData
+                    int nProcessID = Process.GetCurrentProcess().Id;
+                    var jitTimes =
+                        from start in jitStartStream //.Where(e => e.MethodID == e.MethodID && e.ProcessID == e.ProcessID && e.ProcessID != nProcessID && CaptureHelperService.lstProcess.Where(x => x.ProcessId == e.ProcessID).Count() > 0).Take(1)
+                        from end in jitEndStream.Where(e => start.MethodID == e.MethodID && start.ProcessID == e.ProcessID
+                        && start.ProcessID != nProcessID //&& start.ProcessID == 44840
+                        && CaptureHelperService.lstProcess.Any(x => x.ProcessId == start.ProcessID)).Take(1)
+                        select new JitData
+                        {
+                            ProcessID = start.ProcessID,
+                            ThreadID = start.ThreadID,
+                            //StartData = PrintData(start),
+                            //EndData = PrintData(end),
+                            ClassName = start.MethodNamespace,
+                            MethodName = start.MethodName,
+                            ProcessName = CaptureHelperService.lstProcess.Where(x => x.ProcessId == start.ProcessID).First().ProcessName
+                        };
+
+                    //Print every time you compile a method
+                    jitTimes.Subscribe(onNext: jitData => _captureHelperService.IsValidMethod(jitData));
+
+                    source.Kernel.StackWalkStack += data =>
                     {
-                        ProcessID = start.ProcessID,
-                        ThreadID = start.ThreadID,
-                        //StartData = PrintData(start),
-                        //EndData = PrintData(end),
-                        ClassName = start.MethodNamespace,
-                        MethodName = start.MethodName,
-                        ProcessName = CaptureHelperService.lstProcess.Where(x => x.ProcessId == start.ProcessID).First().ProcessName
+                        if (_captureHelperService.IsMonitored(data.ProcessID))
+                        {
+                            
+                            string stack = GetCallStack(data);
+
+                            //Console.WriteLine(stack);
+                        }
                     };
 
-                //Print every time you compile a method
-                jitTimes.Subscribe(onNext: jitData => _captureHelperService.IsValidMethod(jitData));
-
-                source.Kernel.StackWalkStack += data =>
-                {
-                    if (_captureHelperService.IsMonitored(data.ProcessID))
+                    source.Kernel.PerfInfoSample += data =>
                     {
-                        
-                        string stack = GetCallStack(data);
-
-                        //Console.WriteLine(stack);
-                    }
-                };
-
-                source.Kernel.PerfInfoSample += data =>
-                {
-                    if (_captureHelperService.IsMonitored(data.ProcessID))
-                    {
-
-                        
-                        //ResolveSymbols(callStack);
-                        string stack = GetCallStack(data);
-
-                        if (!string.IsNullOrEmpty(stack.Trim()))
+                        if (_captureHelperService.IsMonitored(data.ProcessID))
                         {
-                            AddCallStack(data.ProcessID, stack);
+
+                            
+                            //ResolveSymbols(callStack);
+                            string stack = GetCallStack(data);
+
+                            if (!string.IsNullOrEmpty(stack.Trim()))
+                            {
+                                AddCallStack(data.ProcessID, stack);
+                            }
                         }
-                    }
 
-                };
+                    };
 
-                source.Kernel.ThreadStart += data =>
-                {
-                    if (_captureHelperService.IsMonitored(data.ProcessID))
+                    source.Kernel.ThreadStart += data =>
                     {
-                        var callStack = data.CallStack();
-                        string stack = GetCallStack(data);
-                        if (!string.IsNullOrEmpty(stack.Trim()))
+                        if (_captureHelperService.IsMonitored(data.ProcessID))
                         {
-                            AddCallStack(data.ProcessID, stack);
+                            var callStack = data.CallStack();
+                            string stack = GetCallStack(data);
+                            if (!string.IsNullOrEmpty(stack.Trim()))
+                            {
+                                AddCallStack(data.ProcessID, stack);
+                            }
                         }
-                    }
-                };
-                source.Process();
-            }
+                    };
+                    source.Process();
+                }
 
-            MapMethodAndCallStack();
+                MapMethodAndCallStack();
 
-            return CaptureHelperService.lstProcess.Count > 0;
+                return CaptureHelperService.lstProcess.Count > 0;
+            }).ConfigureAwait(false);
         }
 
         internal static void ResolveSymbols(TraceCallStack callStack)
@@ -396,9 +406,9 @@ namespace EasyInstrumentor.Services.Capture
 
             //if there are any method without callstack check other method with same thread id and processid
             //Then update first thread id and processid method with the subsequent methods
-            if (CaptureHelperService.lstBtData.Where(x => string.IsNullOrEmpty(x.CallStack)
-            //&& x.ProcessID == 44840
-            ).Count() > 0)
+            var methodsWithoutCallstack = CaptureHelperService.lstBtData.Where(x => string.IsNullOrEmpty(x.CallStack)).ToList();
+            
+            if (methodsWithoutCallstack.Any())
             {
                 // Dictionary to keep track of the first occurrence for each (Pid, Tid)
                 var firstOccurrenceMap = new Dictionary<(int Pid, int Tid), BtData>();
@@ -406,13 +416,8 @@ namespace EasyInstrumentor.Services.Capture
                 // Temporary set to store items to be removed
                 var itemsToRemove = new HashSet<BtData>();
 
-                for (int i = 0; i < CaptureHelperService.lstBtData.Where(x => string.IsNullOrEmpty(x.CallStack)
-                //&& x.ProcessID == 44840
-                ).Count(); i++)
+                foreach (var current in methodsWithoutCallstack)
                 {
-                    var current = CaptureHelperService.lstBtData.Where(x => string.IsNullOrEmpty(x.CallStack)
-                    //&& x.ProcessID == 44840
-                    ).ElementAt(i);
                     var key = (current.ProcessID, current.ThreadID);
 
                     if (firstOccurrenceMap.ContainsKey(key))
@@ -458,7 +463,7 @@ namespace EasyInstrumentor.Services.Capture
         }
 
 
-        public bool IsInstrumented(string commandLine)
+        public async Task<bool> IsInstrumentedAsync(string commandLine)
         {
             bool isInstrumented = false;
 
@@ -467,7 +472,7 @@ namespace EasyInstrumentor.Services.Capture
             {
                 if (config is null)
                 {
-                    config = configService.GetConfigDetails(false).Result;
+                    config = await configService.GetConfigDetails(false).ConfigureAwait(false);
                 }
 
                 if (config?.appagents?.standaloneapplications?.Count > 0)
@@ -540,11 +545,14 @@ namespace EasyInstrumentor.Services.Capture
             }
         }
 
-        public void RefreshData(int processId)
+        public async Task RefreshDataAsync(int processId)
         {
-            config = configService.GetConfigDetails(true).Result;
-            CaptureHelperService.lstProcess.Where(x => x.ProcessId == processId).FirstOrDefault().IsInstrumented = true;
-
+            config = await configService.GetConfigDetails(true).ConfigureAwait(false);
+            var process = CaptureHelperService.lstProcess.FirstOrDefault(x => x.ProcessId == processId);
+            if (process != null)
+            {
+                process.IsInstrumented = true;
+            }
         }
 
 

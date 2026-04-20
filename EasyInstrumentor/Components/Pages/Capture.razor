@@ -9,66 +9,143 @@
 
 
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mx-auto mt-4">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
 
+    <MudPaper Elevation="0" Class="mb-4 pa-4" Style="border-radius: 12px; border-left: 4px solid #1976d2;">
+        <MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 600;">
+            <MudIcon Icon="@Icons.Material.Filled.DeveloperBoard" Class="mr-2" />
+            Process Selection
+        </MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Select a .NET process to begin trace capture and analysis
+        </MudText>
+    </MudPaper>
 
-    <!-- Full-width toolbar -->
-    <div class="d-flex justify-between align-center px-4 py-2" style="width: 100%;justify-content: space-between;">
-        <MudText Typo="Typo.h6">Total Processes: @(isLoading ? 0 : processes.Count)</MudText>
-
-        <MudButton Color="Color.Primary"
-        StartIcon="@Icons.Material.Filled.Refresh"
-        OnClick="Refresh"
-        Variant="Variant.Filled"
-        Disabled="@isLoading">
-            @if (isLoading)
-            {
-                <span>Loading...</span>
-            }
-            else
-            {
-                <span>Refresh</span>
-            }
-        </MudButton>
-    </div>
+    <!-- Stats and Actions Bar -->
+    <MudPaper Elevation="2" Class="pa-4 mb-4" Style="border-radius: 12px;">
+        <MudGrid Spacing="2" AlignItems="Center">
+            <MudItem xs="12" sm="6" md="4">
+                <MudChip T="string" Icon="@Icons.Material.Filled.Apps" Color="Color.Info" Size="Size.Medium">
+                    @(isLoading ? 0 : processes.Count) Processes Found
+                </MudChip>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4">
+                <MudChip T="string" Icon="@Icons.Material.Filled.FilterAlt" Color="Color.Secondary" Size="Size.Medium" Disabled="@isLoading">
+                    @(isLoading ? 0 : filteredData.Count()) Displayed
+                </MudChip>
+            </MudItem>
+            <MudItem xs="12" md="4" Class="d-flex justify-end">
+                <MudButton 
+                    Color="Color.Primary"
+                    StartIcon="@Icons.Material.Filled.Refresh"
+                    OnClick="Refresh"
+                    Variant="Variant.Filled"
+                    Disabled="@isLoading"
+                    Style="border-radius: 8px;">
+                    @if (isLoading)
+                    {
+                        <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+                        <span>Loading...</span>
+                    }
+                    else
+                    {
+                        <span>Refresh List</span>
+                    }
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
 
 
     @if (!isLoading)
     {
+        <MudPaper Elevation="2" Class="pa-4" Style="border-radius: 12px;">
+            <MudTextField 
+                @bind-Value="searchString" 
+                Placeholder="Search by process name or ID..." 
+                DebounceInterval="300" 
+                Clearable="true" 
+                Immediate="true"
+                Adornment="Adornment.Start" 
+                AdornmentIcon="@Icons.Material.Filled.Search" 
+                AdornmentColor="Color.Primary"
+                Variant="Variant.Outlined"
+                Margin="Margin.Dense"
+                Class="mb-4" />
 
-        <MudTextField @bind-Value="searchString" Placeholder="Search by process name..." DebounceInterval="500" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-3" />
-
-        <MudTable T="DotnetProcess" Items="filteredData" Hover="true" Bordered="true">
-            <HeaderContent>
-                <MudTh>ID</MudTh>
-                <MudTh>Name</MudTh>
-                @* <MudTh>Command Line</MudTh> *@
-                <MudTh></MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd>@context.ProcessId</MudTd>
-                <MudTd>@context.ProcessName</MudTd>
-                @* <MudTd>@context.CommandLine</MudTd> *@
-                <MudTd>
-                    <MudButton Variant="Variant.Filled" OnClick="() => Proceed(context)">Proceed</MudButton>
-                </MudTd>
-            </RowTemplate>
-            <NoRecordsContent>
-                <MudText>
-                    No eligible dotnet process running..
-                </MudText>
-            </NoRecordsContent>
-        </MudTable>
+            <MudTable 
+                T="DotnetProcess" 
+                Items="filteredData" 
+                Hover="true" 
+                Striped="true"
+                Elevation="0"
+                Style="border-radius: 8px; overflow: hidden;">
+                <HeaderContent>
+                    <MudTh Style="font-weight: 600;">
+                        <MudIcon Icon="@Icons.Material.Filled.Tag" Size="Size.Small" Class="mr-1" />
+                        Process ID
+                    </MudTh>
+                    <MudTh Style="font-weight: 600;">
+                        <MudIcon Icon="@Icons.Material.Filled.Label" Size="Size.Small" Class="mr-1" />
+                        Process Name
+                    </MudTh>
+                    <MudTh Style="font-weight: 600;">
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Class="mr-1" />
+                        .NET Runtime
+                    </MudTh>
+                    <MudTh Style="text-align: right; font-weight: 600;">Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="ID">
+                        <MudChip T="string" Size="Size.Small" Color="Color.Default">@context.ProcessId</MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Name">
+                        <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.ProcessName</MudText>
+                    </MudTd>
+                    <MudTd DataLabel=".NET">
+                        <MudChip T="string"
+                            Size="Size.Small" 
+                            Icon="@Icons.Material.Filled.CheckCircle" 
+                            Color="@(context.IsDotnet ? Color.Success : Color.Default)">
+                            @(context.IsDotnet ? "Yes" : "Unknown")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Actions" Style="text-align: right;">
+                        <MudButton 
+                            Variant="Variant.Filled" 
+                            Color="Color.Primary"
+                            Size="Size.Small"
+                            EndIcon="@Icons.Material.Filled.ArrowForward"
+                            OnClick="() => Proceed(context)"
+                            Style="border-radius: 6px; text-transform: none;">
+                            Analyze
+                        </MudButton>
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudAlert Severity="Severity.Info" Class="my-4">
+                        <MudText>
+                            <MudIcon Icon="@Icons.Material.Filled.Info" Class="mr-2" />
+                            No eligible .NET processes currently running. Start a .NET application and click Refresh.
+                        </MudText>
+                    </MudAlert>
+                </NoRecordsContent>
+            </MudTable>
+        </MudPaper>
     }
 </MudContainer>
 
 <!-- Fullscreen Loader Overlay -->
 @if (isLoading)
 {
-    @* <div class="spinner"></div> *@
-
     <div class="fullscreen-spinner-overlay">
-        <MudProgressCircular Indeterminate="true" Size="Size.Large" Style="height:80px;width:80px;"  Color="Color.Primary" />
+        <MudPaper Elevation="4" Class="pa-8" Style="border-radius: 16px; background: white;">
+            <div class="d-flex flex-column align-center">
+                <MudProgressCircular Indeterminate="true" Size="Size.Large" Style="height:80px;width:80px;" Color="Color.Primary" />
+                <MudText Typo="Typo.h6" Class="mt-4">Scanning for .NET processes...</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">This may take a moment</MudText>
+            </div>
+        </MudPaper>
     </div>
 }
 
@@ -128,7 +205,9 @@
     private IEnumerable<DotnetProcess> filteredData =>
         string.IsNullOrWhiteSpace(searchString)
             ? processes
-            : processes.Where(p => p.ProcessName.Contains(searchString, StringComparison.OrdinalIgnoreCase));
+            : processes.Where(p => 
+                p.ProcessName.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                p.ProcessId.ToString().Contains(searchString));
 
     private void Proceed(DotnetProcess process)
     {
