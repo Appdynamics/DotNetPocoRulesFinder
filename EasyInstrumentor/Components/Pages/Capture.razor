@@ -1,9 +1,10 @@
-﻿@page "/"
+﻿@page "/capture"
 @using EasyInstrumentor.Models
 @using EasyInstrumentor.Models.Capture
 @using EasyInstrumentor.Services.Capture
 @using MudBlazor
 @inject CaptureService captureService
+@inject CaptureHelperService captureHelperService
 @inject NavigationManager Navigation
 @inject ProcessService processService
 
@@ -211,6 +212,9 @@
 
     private void Proceed(DotnetProcess process)
     {
+        // Reset captured data (BT and call stacks) but keep process monitoring intact
+        captureHelperService.ResetCaptureData();
+        
         Navigation.NavigateTo($"/process-detail/{process.ProcessId}");
     }
 }

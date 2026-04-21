@@ -1,4 +1,5 @@
-﻿@page "/Home"
+﻿@page "/"
+@inject NavigationManager Navigation
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
     <MudPaper Elevation="0" Class="pa-8" Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px;">
@@ -14,27 +15,44 @@
                 <MudText Typo="Typo.h6" Style="color: rgba(255,255,255,0.9); max-width: 600px; margin-bottom: 32px;">
                     Advanced ETW tracing tool for analyzing .NET applications and identifying POCO classes with call stack analysis
                 </MudText>
-                <MudButton 
-                    Variant="Variant.Filled" 
-                    Size="Size.Large"
-                    Color="Color.Surface"
-                    Href="/capture"
-                    StartIcon="@Icons.Material.Filled.PlayArrow"
-                    Style="padding: 12px 32px; border-radius: 8px; text-transform: none; font-size: 1.1rem;">
-                    Get Started
-                </MudButton>
+                <MudButtonGroup Variant="Variant.Filled" Size="Size.Large" Style="gap: 16px;">
+                    <MudButton 
+                        Color="Color.Surface"
+                        OnClick="@(() => Navigation.NavigateTo("/capture"))"
+                        StartIcon="@Icons.Material.Filled.PlayArrow"
+                        Style="padding: 12px 32px; border-radius: 8px; text-transform: none; font-size: 1.1rem;">
+                        Get Started
+                    </MudButton>
+                    <MudButton 
+                        Color="Color.Surface"
+                        Variant="Variant.Outlined"
+                        OnClick="@(() => Navigation.NavigateTo("/about"))"
+                        StartIcon="@Icons.Material.Filled.Info"
+                        Style="padding: 12px 32px; border-radius: 8px; text-transform: none; font-size: 1.1rem; border-color: white; color: white;">
+                        About
+                    </MudButton>
+                </MudButtonGroup>
             </MudItem>
         </MudGrid>
     </MudPaper>
 
     <MudGrid Class="mt-8">
         <MudItem xs="12" md="4">
-            <MudPaper Elevation="2" Class="pa-6" Style="border-radius: 12px; height: 100%;">
+            <MudPaper Elevation="2" Class="pa-6" Style="border-radius: 12px; height: 100%; cursor: pointer; transition: transform 0.2s;" 
+                      @onclick="@(() => Navigation.NavigateTo("/capture"))">
                 <MudIcon Icon="@Icons.Material.Filled.Search" Color="Color.Primary" Style="font-size: 48px; margin-bottom: 16px;" />
                 <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Process Discovery</MudText>
                 <MudText Typo="Typo.body2" Color="Color.Secondary">
                     Automatically detect and list all running .NET processes for analysis
                 </MudText>
+                <MudButton 
+                    Color="Color.Primary" 
+                    Variant="Variant.Text" 
+                    EndIcon="@Icons.Material.Filled.ArrowForward"
+                    Class="mt-3"
+                    Style="text-transform: none;">
+                    View Processes
+                </MudButton>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" md="4">
@@ -57,3 +75,9 @@
         </MudItem>
     </MudGrid>
 </MudContainer>
+
+<style>
+    .mud-paper:hover {
+        transform: translateY(-2px);
+    }
+</style>

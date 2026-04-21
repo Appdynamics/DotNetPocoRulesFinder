@@ -4,6 +4,7 @@
 @inject ProcessService ProcessService
 @inject CaptureService captureService
 @inject NavigationManager Navigation
+@implements IDisposable
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
     
@@ -160,7 +161,6 @@
     [Parameter]
     public int OldPid { get; set; }
 
-
     private DotnetProcess? _process;
     private DotnetProcess? _newProcess;
     private Timer? _monitorTimer;
@@ -169,17 +169,41 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await InitializeComponent();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // This is called when navigating to the same component with different parameters
+        // Reset everything when the PID changes
+        await InitializeComponent();
+    }
+
+    private async Task InitializeComponent()
+    {
+        // Clean up existing timer
+        _monitorTimer?.Dispose();
+        _monitorTimer = null;
+
+        // Reset all state
         _newProcess = null;
         _processFound = false;
+        IsSubmitting = false;
+
+        // Load the process info
         _process = await ProcessService.GetProcessByIdAsync(OldPid);
         
-        // Start capture without awaiting - it will run in background
-        _ = captureService.StartCapture(_process.CommandLine, OldPid);
-        
-        // Give it a moment to initialize
-        await Task.Delay(500);
-        
-        StartMonitoringForNewProcess();
+        // Only start capture if process was found
+        if (_process != null)
+        {
+            // Start capture without awaiting - it will run in background
+            _ = captureService.StartCapture(_process.CommandLine, OldPid);
+            
+            // Give it a moment to initialize
+            await Task.Delay(500);
+            
+            StartMonitoringForNewProcess();
+        }
     }
 
     private void StartMonitoringForNewProcess()
@@ -211,32 +235,38 @@
 
     private async void NavigateToBtDetails()
     {
+        if (_newProcess == null) return;
+
         IsSubmitting = true;
         StateHasChanged();
+        
         if (await captureService.StopCapture(false))
         {
             string url = $"/btdetails?ProcessId={_newProcess.ProcessId}";
-            Reset();
-
+            CleanupResources();
             Navigation.NavigateTo(url);
         }
+        
         IsSubmitting = false;
     }
 
-
     private async void NavigateToHome()
     {
-        Reset();
+        CleanupResources();
         await captureService.StopCapture(true);
-        Navigation.NavigateTo($"/?fromPage=processdetail");
+        Navigation.NavigateTo($"/capture?fromPage=processdetail");
     }
 
-    private void Reset()
+    private void CleanupResources()
     {
         _processFound = false;
         _newProcess = null;
-        StateHasChanged();
+        _monitorTimer?.Dispose();
+        _monitorTimer = null;
     }
 
-
+    public void Dispose()
+    {
+        CleanupResources();
+    }
 }

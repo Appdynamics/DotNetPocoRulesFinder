@@ -190,5 +190,13 @@ namespace EasyInstrumentor.Services.Capture
 
             return false;
         }
+
+        public void ResetCaptureData()
+        {
+            // Only clear the captured data, NOT the process list
+            lstBtData.Clear();
+            lstStack.Clear();
+            // lstProcess should NOT be cleared as it tracks monitored processes
+        }
     }
 }

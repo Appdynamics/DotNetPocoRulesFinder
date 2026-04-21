@@ -1,0 +1,159 @@
+@page "/about"
+@inject NavigationManager Navigation
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudPaper Elevation="0" Class="mb-4 pa-4" Style="border-radius: 12px; border-left: 4px solid #1976d2;">
+        <MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 600;">
+            <MudIcon Icon="@Icons.Material.Filled.Info" Class="mr-2" />
+            About Dotnet POCO Detector
+        </MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Advanced ETW-based tracing and analysis tool for .NET applications
+        </MudText>
+    </MudPaper>
+
+    <MudGrid Spacing="3">
+        <!-- Overview -->
+        <MudItem xs="12">
+            <MudPaper Elevation="2" Class="pa-6" Style="border-radius: 12px;">
+                <MudText Typo="Typo.h5" Class="mb-3" Style="font-weight: 600;">
+                    <MudIcon Icon="@Icons.Material.Filled.Description" Class="mr-2" Color="Color.Primary" />
+                    Overview
+                </MudText>
+                <MudText Typo="Typo.body1" Class="mb-3">
+                    Dotnet POCO Detector is a powerful diagnostic tool that leverages Event Tracing for Windows (ETW) 
+                    to capture and analyze .NET application behavior at runtime. It helps developers identify POCO (Plain Old CLR Objects) 
+                    classes, trace method executions, and analyze call stacks for performance optimization and debugging.
+                </MudText>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Key Features -->
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="2" Class="pa-6" Style="border-radius: 12px; height: 100%;">
+                <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
+                    <MudIcon Icon="@Icons.Material.Filled.Star" Class="mr-2" Color="Color.Primary" />
+                    Key Features
+                </MudText>
+                <MudList T="string" Dense="true">
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Check" IconColor="Color.Success">
+                        Real-time ETW trace capture
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Check" IconColor="Color.Success">
+                        Automatic .NET process discovery
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Check" IconColor="Color.Success">
+                        JIT compilation monitoring
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Check" IconColor="Color.Success">
+                        Method execution tracking
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Check" IconColor="Color.Success">
+                        Call stack analysis and visualization
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Check" IconColor="Color.Success">
+                        Configurable filtering and exclusions
+                    </MudListItem>
+                </MudList>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Technology Stack -->
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="2" Class="pa-6" Style="border-radius: 12px; height: 100%;">
+                <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
+                    <MudIcon Icon="@Icons.Material.Filled.Code" Class="mr-2" Color="Color.Primary" />
+                    Technology Stack
+                </MudText>
+                <MudList T="string" Dense="true">
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.ChevronRight">
+                        .NET 9 / C# 13
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.ChevronRight">
+                        .NET MAUI Blazor Hybrid
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.ChevronRight">
+                        MudBlazor UI Framework
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.ChevronRight">
+                        Microsoft.Diagnostics.Tracing
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.ChevronRight">
+                        Event Tracing for Windows (ETW)
+                    </MudListItem>
+                </MudList>
+            </MudPaper>
+        </MudItem>
+
+        <!-- How It Works -->
+        <MudItem xs="12">
+            <MudPaper Elevation="2" Class="pa-6" Style="border-radius: 12px;">
+                <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
+                    <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mr-2" Color="Color.Primary" />
+                    How It Works
+                </MudText>
+                <MudTimeline TimelinePosition="TimelinePosition.Start">
+                    <MudTimelineItem Color="Color.Primary" Size="Size.Small">
+                        <MudText Typo="Typo.body1" Style="font-weight: 500;">Process Discovery</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Scans and identifies all running .NET processes on your system
+                        </MudText>
+                    </MudTimelineItem>
+                    <MudTimelineItem Color="Color.Primary" Size="Size.Small">
+                        <MudText Typo="Typo.body1" Style="font-weight: 500;">Trace Capture</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Starts ETW sessions to capture kernel and CLR events for the selected process
+                        </MudText>
+                    </MudTimelineItem>
+                    <MudTimelineItem Color="Color.Primary" Size="Size.Small">
+                        <MudText Typo="Typo.body1" Style="font-weight: 500;">Process Monitoring</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Automatically detects when the target process restarts and begins data collection
+                        </MudText>
+                    </MudTimelineItem>
+                    <MudTimelineItem Color="Color.Success" Size="Size.Small">
+                        <MudText Typo="Typo.body1" Style="font-weight: 500;">Analysis & Results</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Processes captured events to display methods, classes, and call stacks
+                        </MudText>
+                    </MudTimelineItem>
+                </MudTimeline>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Requirements -->
+        <MudItem xs="12">
+            <MudAlert Severity="Severity.Warning" Class="mb-4">
+                <MudText Typo="Typo.body1" Style="font-weight: 600;" Class="mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Small" Class="mr-2" />
+                    Administrator Privileges Required
+                </MudText>
+                <MudText Typo="Typo.body2">
+                    This application requires administrator privileges to create and manage ETW trace sessions. 
+                    Please ensure you run the application as administrator for full functionality.
+                </MudText>
+            </MudAlert>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Back Button -->
+    <MudPaper Elevation="2" Class="pa-4 mt-4 d-flex justify-space-between align-center" Style="border-radius: 12px;">
+        <MudButton 
+            Color="Color.Primary" 
+            Variant="Variant.Filled" 
+            OnClick="@(() => Navigation.NavigateTo("/"))"
+            StartIcon="@Icons.Material.Filled.Home"
+            Style="border-radius: 8px; text-transform: none;">
+            Back to Home
+        </MudButton>
+        
+        <MudButton 
+            Color="Color.Success" 
+            Variant="Variant.Filled" 
+            OnClick="@(() => Navigation.NavigateTo("/capture"))"
+            EndIcon="@Icons.Material.Filled.ArrowForward"
+            Style="border-radius: 8px; text-transform: none;">
+            Start Analysis
+        </MudButton>
+    </MudPaper>
+</MudContainer>

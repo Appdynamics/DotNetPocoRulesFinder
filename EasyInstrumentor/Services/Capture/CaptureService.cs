@@ -48,64 +48,110 @@ namespace EasyInstrumentor.Services.Capture
 
         public async Task StartCapture(string commandLine, int oldPid)
         {
+            // Stop any existing sessions before starting new ones
+            StopExistingSessions();
             await CaptureTraceDataAsync(commandLine, oldPid);
+        }
+
+        private void StopExistingSessions()
+        {
+            try
+            {
+                // Try to stop and dispose existing sessions
+                if (userSession != null)
+                {
+                    try
+                    {
+                        userSession.Stop();
+                        userSession.Dispose();
+                    }
+                    catch { }
+                    userSession = null;
+                }
+
+                if (activeUserSession != null)
+                {
+                    try
+                    {
+                        activeUserSession.Stop();
+                        activeUserSession.Dispose();
+                    }
+                    catch { }
+                    activeUserSession = null;
+                }
+
+                // Try to stop any orphaned sessions with the same names
+                try
+                {
+                    var orphanedUserSession = TraceEventSession.GetActiveSession("SimpleMontitorSession");
+                    if (orphanedUserSession != null)
+                    {
+                        orphanedUserSession.Stop();
+                        orphanedUserSession.Dispose();
+                    }
+                }
+                catch { }
+
+                try
+                {
+                    var orphanedActiveSession = TraceEventSession.GetActiveSession("ActiveUserSession");
+                    if (orphanedActiveSession != null)
+                    {
+                        orphanedActiveSession.Stop();
+                        orphanedActiveSession.Dispose();
+                    }
+                }
+                catch { }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"Error stopping existing sessions: {ex.Message}");
+            }
         }
 
         public async Task CaptureTraceDataAsync(string commandLine, int oldPid)
         {
             _ = Task.Run(() =>
             {
-                string symbolPath = SymbolPath.SymbolPathFromEnvironment;
+                try
+                {
+                    string symbolPath = SymbolPath.SymbolPathFromEnvironment;
 
-                // If _NT_SYMBOL_PATH isn't set, force it to default to the one mentioned in the README of the project.
-                //if (string.IsNullOrWhiteSpace(symbolPath))
-                //{
-                //    symbolPath = @";SRV*C:\Symbols*https://msdl.microsoft.com/download/symbols;SRV*C:\Symbols*https://nuget.smbsrc.net;SRV*C:\Symbols*https://referencesource.microsoft.com/symbols";
-                //}
+                    List<string> activityid = new List<string>();
+                    userSession = new TraceEventSession("SimpleMontitorSession", "MyEventsFile.etl");
+                    activeUserSession = new TraceEventSession("ActiveUserSession");
 
-                //m_symbolReader = new SymbolReader(TextWriter.Null, symbolPath);
-                //m_symbolReader.SecurityCheck = path => true;
+                    activeUserSession.EnableKernelProvider(KernelTraceEventParser.Keywords.Process,
+                        stackCapture: KernelTraceEventParser.Keywords.Thread
+                        );
 
-                List<string> activityid = new List<string>();
-                userSession = new TraceEventSession("SimpleMontitorSession", "MyEventsFile.etl");
-                activeUserSession = new TraceEventSession("ActiveUserSession");
+                    userSession.EnableKernelProvider(KernelTraceEventParser.Keywords.Process
+                        | KernelTraceEventParser.Keywords.ImageLoad
+                        | KernelTraceEventParser.Keywords.Thread,
+                        stackCapture: KernelTraceEventParser.Keywords.Thread
+                        );
+                    userSession.EnableProvider(ClrTraceEventParser.ProviderGuid, TraceEventLevel.Verbose,
+                        (ulong)(ClrTraceEventParser.Keywords.Loader
+                        | ClrTraceEventParser.Keywords.Stack
+                        | ClrTraceEventParser.Keywords.Threading
+                        | ClrTraceEventParser.Keywords.Jit
+                        ),
+                        options: new TraceEventProviderOptions { StacksEnabled = true }
+                        );
+                    // Needed for JIT Compile code that was already compiled. 
+                    userSession.EnableProvider(ClrRundownTraceEventParser.ProviderGuid, TraceEventLevel.Verbose,
+                        (ulong)(ClrTraceEventParser.Keywords.Jit |
+                        ClrTraceEventParser.Keywords.Loader |
+                        ClrTraceEventParser.Keywords.Stack |
+                        ClrTraceEventParser.Keywords.Threading),
+                        options: new TraceEventProviderOptions { StacksEnabled = true }
+                        );
 
+                    // Use the activeUserSession source directly for real-time events
+                    var source = activeUserSession.Source;
 
-                activeUserSession.EnableKernelProvider(KernelTraceEventParser.Keywords.Process,
-                    stackCapture: KernelTraceEventParser.Keywords.Thread
-                    );
-
-
-
-                userSession.EnableKernelProvider(KernelTraceEventParser.Keywords.Process
-                    | KernelTraceEventParser.Keywords.ImageLoad
-                    | KernelTraceEventParser.Keywords.Thread,
-                    stackCapture: KernelTraceEventParser.Keywords.Thread
-                    );
-                userSession.EnableProvider(ClrTraceEventParser.ProviderGuid, TraceEventLevel.Verbose,
-                    (ulong)(ClrTraceEventParser.Keywords.Loader
-                    | ClrTraceEventParser.Keywords.Stack
-                    | ClrTraceEventParser.Keywords.Threading
-                    | ClrTraceEventParser.Keywords.Jit
-                    ),
-                    options: new TraceEventProviderOptions { StacksEnabled = true }
-                    );
-                // Needed for JIT Compile code that was already compiled. 
-                userSession.EnableProvider(ClrRundownTraceEventParser.ProviderGuid, TraceEventLevel.Verbose,
-                    (ulong)(ClrTraceEventParser.Keywords.Jit |
-                    ClrTraceEventParser.Keywords.Loader |
-                    ClrTraceEventParser.Keywords.Stack |
-                    ClrTraceEventParser.Keywords.Threading),
-                    options: new TraceEventProviderOptions { StacksEnabled = true }
-                    );
-
-
-
-                traceLogSource = TraceLog.CreateFromTraceEventSession(activeUserSession);
-
-                traceLogSource.Kernel.ProcessStart += delegate (ProcessTraceData data)
+                    source.Kernel.ProcessStart += delegate (ProcessTraceData data)
                     {
-
                         if (_captureHelperService.IsValidProcess(data, commandLine, oldPid))
                         {
                             CaptureHelperService.lstProcess.Add(new DotnetProcess()
@@ -116,44 +162,67 @@ namespace EasyInstrumentor.Services.Capture
                                 IsDotnet = true,
                             });
                         }
-
                     };
 
-                traceLogSource.Kernel.ProcessDCStart += delegate (ProcessTraceData data)
-                {
-                    if (_captureHelperService.IsValidProcess(data, commandLine, oldPid))
+                    source.Kernel.ProcessDCStart += delegate (ProcessTraceData data)
                     {
-                        CaptureHelperService.lstProcess.Add(new DotnetProcess()
+                        if (_captureHelperService.IsValidProcess(data, commandLine, oldPid))
                         {
-                            ProcessId = data.ProcessID,
-                            ProcessName = data.ProcessName,
-                            ImageFileName = data.ImageFileName,
-                            IsDotnet = true,
-                        });
-                    }
-                };
+                            CaptureHelperService.lstProcess.Add(new DotnetProcess()
+                            {
+                                ProcessId = data.ProcessID,
+                                ProcessName = data.ProcessName,
+                                ImageFileName = data.ImageFileName,
+                                IsDotnet = true,
+                            });
+                        }
+                    };
 
-                // This call blocks - it needs to run on background thread WITHOUT awaiting
-                traceLogSource.Process();
+                    // Process the real-time events
+                    // This call blocks until the session is stopped
+                    source.Process();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError($"Error in CaptureTraceDataAsync: {ex.Message}");
+                }
             });
 
             // Return immediately, don't wait for Process() to complete
             await Task.CompletedTask;
         }
+
         internal async Task<bool> StopCapture(bool terminate)
         {
-
-            if (userSession != null) { userSession.Stop(); }
-            //GetEligibleProcess();
-
-            if(terminate)
+            try
             {
-                CaptureHelperService.lstProcess.Clear();
-                return true;
-            }
-            else
-                return await ProcessDataAsync().ConfigureAwait(false);
+                if (activeUserSession != null)
+                {
+                    activeUserSession.Stop();
+                    activeUserSession.Dispose();
+                    activeUserSession = null;
+                }
 
+                if (userSession != null)
+                {
+                    userSession.Stop();
+                    userSession.Dispose();
+                    userSession = null;
+                }
+
+                if (terminate)
+                {
+                    CaptureHelperService.lstProcess.Clear();
+                    return true;
+                }
+                else
+                    return await ProcessDataAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error stopping capture: {ex.Message}");
+                return false;
+            }
         }
 
         private void CaptureStack(TraceEvent data)

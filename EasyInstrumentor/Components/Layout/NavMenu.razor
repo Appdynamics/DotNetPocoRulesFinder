@@ -1,12 +1,15 @@
 ﻿<MudNavMenu>
     <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">
+        <MudText Typo="Typo.body1">Home</MudText>
+    </MudNavLink>
+    <MudNavLink Href="/capture" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.List">
         <MudText Typo="Typo.body1">Process List</MudText>
     </MudNavLink>
     <MudDivider Class="my-2" />
     <MudText Typo="Typo.caption" Class="px-4 mt-4" Color="Color.Secondary" Style="text-transform: uppercase; letter-spacing: 0.5px;">
         Quick Links
     </MudText>
-    <MudNavLink Href="/home" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Info">
+    <MudNavLink Href="/about" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Info">
         <MudText Typo="Typo.body1">About</MudText>
     </MudNavLink>
 </MudNavMenu>
