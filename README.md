@@ -22,7 +22,7 @@ This tool solves that by **capturing runtime method and class execution using ET
 
 1. Download Dotnet POCO Detector zip file from the github.
 2. Then extract it to folder.
-3. Run Dotnet **POCO Detector.exe** as administrator.
+3. Run **Dotnet POCO Detector.exe** as administrator.
 4. On launch, the tool lists all running .NET processes.
 5. The user selects the target process.
 6. Click **Proceed** → The tool waits for the process to be restarted.
